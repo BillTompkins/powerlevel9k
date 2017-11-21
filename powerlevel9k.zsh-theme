@@ -563,6 +563,7 @@ prompt_public_ip() {
 # Note that if $DEFAULT_USER is not set, this prompt segment will always print
 set_default POWERLEVEL9K_ALWAYS_SHOW_CONTEXT false
 set_default POWERLEVEL9K_ALWAYS_SHOW_USER false
+set_default POWERLEVEL9K_ALWAYS_SHOW_REMOTE_HOST true
 set_default POWERLEVEL9K_CONTEXT_TEMPLATE "%n@%m"
 prompt_context() {
   local current_state="DEFAULT"
@@ -575,12 +576,15 @@ prompt_context() {
   local content=""
 
   if [[ "$POWERLEVEL9K_ALWAYS_SHOW_CONTEXT" == true ]] || [[ "$(whoami)" != "$DEFAULT_USER" ]] || [[ -n "$SSH_CLIENT" || -n "$SSH_TTY" ]]; then
-
       if [[ $(print -P "%#") == '#' ]]; then
         current_state="ROOT"
       fi
 
-      content="${POWERLEVEL9K_CONTEXT_TEMPLATE}"
+      if [[ "$(whoami)" == "$DEFAULT_USER" ]] && [[ "$POWERLEVEL9K_ALWAYS_SHOW_REMOTE_HOST" == true ]]; then
+          content="$POWERLEVEL9K_HOST_TEMPLATE"
+      else
+          content="${POWERLEVEL9K_CONTEXT_TEMPLATE}"
+      fi
 
   elif [[ "$POWERLEVEL9K_ALWAYS_SHOW_USER" == true ]]; then
       content="$(whoami)"
