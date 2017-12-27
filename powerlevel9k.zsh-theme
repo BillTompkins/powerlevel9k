@@ -812,17 +812,55 @@ prompt_dir() {
       truncate_unique_from_left)
         # for each parent path component find the shortest unique beginning
         # characters sequence. Source: https://stackoverflow.com/a/45336078
-        paths=(${(s:/:)$(pwd | sed -e "s,^$HOME,~,")})
-        cur_path='/'
-        cur_short_path='/'
+
+        pathname=$(pwd)
+
+        # start by substituting in from a user-specified shortening list.  If no list
+        # is specified, just sub $HOME with ~
+        if [[ $#POWERLEVEL9K_DIR_NICKNAMES == 0 ]]; then
+            typeset -A POWERLEVEL9K_DIR_NICKNAMES
+            POWERLEVEL9K_DIR_NICKNAMES[$HOME]='~'
+        fi
+        typeset -A nicks
+        nicks=("${(@fkv)POWERLEVEL9K_DIR_NICKNAMES}")
+
+        # crummy name:  "nick" is the thing that has a nickname
+        local -A local_to_nick
+        lprefix="POWERLEVEL9KNICK_"
+        let "lindex = 0"
+
+        for k in "${(@k)nicks}"; do
+            thisnick=${lprefix}${lindex}
+            local_to_nick[${lprefix}${lindex}]=${k}
+            #print substituting $k with $thisnick
+            pathname=${pathname//${k}/${thisnick}}
+            let "lindex = $lindex + 1"
+            # check to see if $k is included in any other nicks
+            for sk in "${(@k)nicks}"; do
+                if [[ "$k" != "$sk" && $sk == *$k* ]] ; then
+                    # substitute any matches for sk with k already subbed
+                    subbed_sk=${sk/$k/$thisnick}
+                    thissubnick=${lprefix}${lindex}
+                    local_to_nick[${lprefix}${lindex}]=${sk}
+                    #print extra-substituting $subbed_sk with $thissubnick
+                    pathname=${pathname//${subbed_sk}/${thissubnick}}
+                    let "lindex = $lindex + 1"
+                fi
+            done
+        done
+
+        paths=(${(s:/:)pathname})
+        cur_path=''
+        cur_short_path=''
         for directory in ${paths[@]}
         do
-          if [[ ${directory} == "~" ]]; then
-            cur_short_path='~/'
-            cur_path="${HOME}/"
+          if [[ ${directory} == ${lprefix}* ]]; then
+            nick=${local_to_nick[${directory}]}
+            cur_path+=$nick
+            cur_short_path+=$nicks[$nick]
           elif [[ -n ${${paths[-$POWERLEVEL9K_SHORTEN_DIR_LENGTH,-1]}[(r)$directory]} ]]; then
-            cur_short_path+="$directory/"
-            cur_path+="$directory/"
+            cur_short_path+="/$directory"
+            cur_path+="/$directory"
           else
             cur_dir=''
             for (( i=0; i<(${#directory}); i++ )); do
@@ -832,11 +870,11 @@ prompt_dir() {
                 break
               fi
             done
-            cur_short_path+="$cur_dir/"
-            cur_path+="$directory/"
+            cur_short_path+="/$cur_dir"
+            cur_path+="/$directory"
           fi
         done
-        current_path="${cur_short_path:0:-1}"
+        current_path="${cur_short_path}"
       ;;
 
       *)
