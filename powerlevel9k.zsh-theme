@@ -822,7 +822,8 @@ prompt_dir() {
             POWERLEVEL9K_DIR_NICKNAMES[$HOME]='~'
         fi
         typeset -A nicks
-        nicks=("${(@fkv)POWERLEVEL9K_DIR_NICKNAMES}")
+        #nicks=("${(@fkv)POWERLEVEL9K_DIR_NICKNAMES}")  # this fails on zsh 5.1.1/Linux
+        set -A nicks "${(@kv)POWERLEVEL9K_DIR_NICKNAMES}"
 
         # crummy name:  "nick" is the thing that has a nickname
         local -A local_to_nick
